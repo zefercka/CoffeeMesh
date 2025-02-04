@@ -1,5 +1,6 @@
 from datetime import datetime
-from uuid import UUID
+from typing import Optional
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from starlette import status
@@ -9,25 +10,54 @@ from orders.api.schemas import (CreateOrderSchema, GetOrderSchema,
                                 GetOrdersSchema)
 from orders.app import app
 
-ORDERS = []
+orders = []
 
 @app.get('/orders')
-def get_orders() -> GetOrdersSchema:
-    return ORDERS
+def get_orders(cancelled: Optional[bool] = None, 
+               limit: Optional[int] = None) -> GetOrdersSchema:
+    if cancelled is None and limit is None:
+        return {
+            'orders': orders
+        }
+    
+    query_set = [order for order in orders]
+    
+    if cancelled is not None:
+        if cancelled:
+            query_set = [
+                order
+                for order in query_set
+                if order['status'] == 'cancelled'
+            ]
+        else:
+            query_set = [
+                order
+                for order in query_set
+                if order['status'] != 'cancelled'
+            ]
+        
+    if limit is not None:
+        return {
+            'orders': query_set[:limit]
+        }
+    
+    return {
+        'orders': query_set
+    }
 
 
 @app.post('/orders', status_code=status.HTTP_201_CREATED)
 def create_order(order_details: CreateOrderSchema):
     order = order_details.model_dump()
-    order['id'] = UUID.uuid4()
+    order['id'] = uuid4()
     order['created'] = datetime.now()
     order['status'] = 'created'
-    ORDERS.append(order)
+    orders.append(order)
     return order
 
 @app.get('/orders/{order_id}')
 def get_order(order_id: UUID) -> GetOrderSchema:
-    for order in ORDERS:
+    for order in orders:
         if order['id'] == order_id:
             return order
     
@@ -39,7 +69,7 @@ def get_order(order_id: UUID) -> GetOrderSchema:
 
 @app.put('/orders/{order_id}')
 def update_order(order_id: UUID, order_details: CreateOrderSchema):
-    for order in ORDERS:
+    for order in orders:
         if order['id'] == order_id:
             order.update(order_details.model_dump())
             return order
@@ -52,9 +82,9 @@ def update_order(order_id: UUID, order_details: CreateOrderSchema):
 
 @app.delete('/orders/{order_id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_order(order_id: UUID):
-    for index, order in enumerate(ORDERS):
+    for index, order in enumerate(orders):
         if order['id'] == order_id:
-            ORDERS.pop(index)
+            orders.pop(index)
             # Используем .value чтобы вернуть пустое значение
             return Response(status_code=status.HTTP_204_NO_CONTENT.value)
 
@@ -66,7 +96,7 @@ def delete_order(order_id: UUID):
 
 @app.post('/orders/{order_id}/cancel')
 def cancel_order(order_id: UUID):
-    for order in ORDERS:
+    for order in orders:
         if order['id'] == order_id:
             order['status'] = 'canceled'
             return order
@@ -79,7 +109,7 @@ def cancel_order(order_id: UUID):
 
 @app.post('/orders/{order_id}/pay')
 def pay_order(order_id: UUID):
-    for order in ORDERS:
+    for order in orders:
         if order['id'] == order_id:
             order['status'] = 'progress'
             return order

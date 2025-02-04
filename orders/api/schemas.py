@@ -25,9 +25,14 @@ class OrderItemSchema(BaseModel):
     size: Size
     quantity: Annotated[int, Field(ge=1, strict=True)] = 1
     
+    class Config:
+        extra = 'forbid'
 
 class CreateOrderSchema(BaseModel):
     order: Annotated[list[OrderItemSchema], Field(min_items=1)]
+    
+    class Config:
+        extra = 'forbid'
     
 
 class GetOrderSchema(BaseModel):
