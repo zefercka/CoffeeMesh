@@ -6,9 +6,9 @@ from fastapi import HTTPException
 from starlette import status
 from starlette.responses import Response
 
-from orders.api.schemas import (CreateOrderSchema, GetOrderSchema,
+from orders.web.api.schemas import (CreateOrderSchema, GetOrderSchema,
                                 GetOrdersSchema)
-from orders.app import app
+from orders.web.app import app
 
 orders = []
 
@@ -36,7 +36,7 @@ def get_orders(cancelled: Optional[bool] = None,
                 if order['status'] != 'cancelled'
             ]
         
-    if limit is not None:
+    if limit is not None and len(query_set) > limit:
         return {
             'orders': query_set[:limit]
         }
