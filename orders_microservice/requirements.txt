@@ -1,0 +1,7 @@
+fastapi[all]
+sqlalchemy
+alembic
+requests
+cryptography==44.0.1
+PyJWT==2.10.1
+python_dotenv==1.0.1
